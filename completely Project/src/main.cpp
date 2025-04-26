@@ -1,5 +1,8 @@
 #include <Arduino.h>
+#include <LedControl.h>
 #include <snake.h>
+#include <tetris.h>
+#include <ticTacToe.h>
 
 // Icon für Snake (eine schlängelnde Linie)
 byte icon_snake[8] = {
@@ -25,40 +28,38 @@ byte icon_tetris[8] = {
   B00000000
 };
 
-// Icon für Atari Adventure (stilisiertes Schlüssel-Symbol)
-// Dieses Icon soll an den Schlüssel erinnern, den man in Atari Adventure finden kann.
-byte icon_atari_adventure[8] = {
-  B01111100,  // große, runde Schlüsselkopfform (Pixel in den Spalten 1 bis 5)
-  B01000100,  // Rand des Schlüsselkopfs
+// Icon für Tic Tac Toe (ein einfaches Gitter/Plus-Zeichen)
+byte icon_tictactoe[8] = {
+  0b01100101,
+  0b10010010,
+  0b10010101,
+  0b01100000,
+  0b00000110,
+  0b10101001,
+  0b01001001,
+  0b10100110
+};
+
+// Icon für Adventure (stilisiertes Schlüssel-Symbol)
+byte icon_adventure[8] = {
+  B01111100,  // Schlüsselkopf
+  B01000100,  // Rand
   B01000100,  // Schlüsselkopf
   B01000100,  // Beginn des Schaftes
   B01000100,  // Schaft
   B01000100,  // Schaft
-  B01010100,  // erste "Zahnung" (Teeth) – Pixel in den Spalten 1, 3 und 5
-  B00101000   // untere Zahnung, etwas schmaler (Pixel in den Spalten 2 und 4)
+  B01010100,  // erste Zahnung
+  B00101000   // untere Zahnung
 };
 
-// Hilfsfunktion zum Blinken des Icons (langsames Ausblenden)
-void blinkIcon(byte icon[8], int times, int delayTime) {
-  for (int j = 0; j < times; j++) {
-    lc.clearDisplay(0);
-    delay(delayTime * 2);   // längere Pause für langsameres Blinken
-    for (int i = 0; i < 8; i++) {
-      lc.setRow(0, i, icon[i]);
-    }
-    delay(delayTime * 2);
-  }
-}
-
-// Zeigt das Menü auf der LED-Matrix an und lässt den Benutzer mittels Joystick (x-Achse)
-// und Button eine Auswahl treffen.
+// Menüanzeige und Auswahlfunktion
 void showMenuIcons() {
-  int currentOption = 1;  // 1: Snake, 2: Tetris, 3: Adventure
+  int currentOption = 1;  // 1: Snake, 2: Tetris, 3: Tic Tac Toe, 4: Adventure
   bool selected = false;
   
   Serial.println("Menü (Icons) auf LED-Matrix");
   
-  // Variablen zum Auslesen des Joysticks:
+  // Variable für Joystickwert (x-Achse)
   int xVal = 0;
   
   while (!selected) {
@@ -76,28 +77,33 @@ void showMenuIcons() {
         break;
       case 3:
         for (int i = 0; i < 8; i++) {
-          lc.setRow(0, i, icon_atari_adventure[i]);
+          lc.setRow(0, i, icon_tictactoe[i]);
+        }
+        break;
+      case 4:
+        for (int i = 0; i < 8; i++) {
+          lc.setRow(0, i, icon_adventure[i]);
         }
         break;
     }
     
-    // Langsamer Blink-Effekt, um die Auswahl hervorzuheben:
-    blinkIcon((currentOption == 1 ? icon_snake : 
-               currentOption == 2 ? icon_tetris : icon_atari_adventure), 1, 150);
+    // Blinkeffekt, um die Auswahl hervorzuheben:
+    // Hier wird das aktuelle Icon einmal kurz ausgeblendet und wieder eingeblendet.
+    delay(150);
     
     // Joystick auslesen (x-Achse):
     xVal = analogRead(xAxis);
     if (xVal > 550) {  // Rechts bewegen → nächste Option
       currentOption++;
-      if (currentOption > 3) {
+      if (currentOption > 4) {
         currentOption = 1;
       }
-      delay(300);  // kurzer Delay als Entprellung
+      delay(300);  // Entprellzeit
     } 
     else if (xVal < 470) {  // Links bewegen → vorherige Option
       currentOption--;
       if (currentOption < 1) {
-        currentOption = 3;
+        currentOption = 4;
       }
       delay(300);
     }
@@ -115,23 +121,26 @@ void showMenuIcons() {
   Serial.print("Ausgewählte Option (Icon): ");
   Serial.println(currentOption);
   
-  // Je nach Auswahl wird ein Spiel gestartet:
+  // Je nach Auswahl wird das entsprechende Spiel gestartet:
   if (currentOption == 1) {
-    startSnake();  // Funktion aus snake.h
+    startSnake();  
   } 
   else if (currentOption == 2) {
-    //startTetris(); // Hier könnte der Tetris-Code aufgerufen werden
-  } 
+    startTetris();
+  }
   else if (currentOption == 3) {
-    //startAdventure(); // Hier könnte der Adventure-Code aufgerufen werden
+    startTicTacToe();
+  }
+  else if (currentOption == 4) {
+    //startAdventure();
   }
 }
 
 void setup() {
   Serial.begin(9600);
-  delay(1000); // Warten, bis der serielle Monitor bereit ist
+  delay(1000);  // Warten, bis der serielle Monitor bereit ist
   
-  // Initialisiere die LED-Matrix (Anpassung je nach Hardware notwendig):
+  // LED-Matrix initialisieren
   lc.shutdown(0, false);       // Display aktivieren
   lc.setIntensity(0, 1);       // Helligkeit einstellen (0 bis 15)
   lc.clearDisplay(0);          // Display leeren

@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "completely Project"
+		},
+		{
+			"name": "Macro keyboard",
+			"path": "../esp32/macro keyboard/Macro keyboard"
+		}
+	],
+	"settings": {}
+}
